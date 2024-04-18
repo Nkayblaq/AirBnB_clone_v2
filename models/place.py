@@ -1,8 +1,13 @@
 #!/usr/bin/python3
 """ Place Module for HBNB project """
+from AirBnB_clone_v2.models import Amenity
 from models.base_model import Base, BaseModel
-from sqlalchemy import Column, Float, ForeignKey, Integer, String
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
+
+place_amenity = Table('place_amenity', Base.metadata,
+                      Column('place_id', String(60), ForeignKey('places.id'), primary_key=True, nullable=False),
+                      Column('amenity_id', String(60), ForeignKey('amenities.id'), primary_key=True, nullable=False))
 
 
 class Place(BaseModel, Base):
@@ -21,6 +26,23 @@ class Place(BaseModel, Base):
     latitude = Column(Float)
     longitude = Column(Float)
 
+    amenity_ids = []
+
     user = relationship("User", back_populates="places")
     city = relationship("City", back_populates="places")
     reviews = relationship("Review", cascade="all, delete", backref="place")
+
+    amenities = relationship('Amenity', secondary=place_amenity, viewonly=False)
+
+    @property
+    def amenities(self):
+        from models import storage
+        amenities = storage.all(Amenity).values()
+        return [amenities[amenities.id] for amenity_id in self.amenity_ids]
+
+    @amenities.setter
+    def amenities(self, amenity):
+        if isinstance(amenity, Amenity):
+            if not hasattr(self, 'amenity_ids'):
+                self.amenity_ids = []
+            self.amenity_ids.append(amenity.id)
